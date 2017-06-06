@@ -27,8 +27,9 @@ sealed trait Option[+A] {
     case _ => ob
   }
 
-  def orElse[B>:A](ob: => Option[B]): Option[B] =
+  def orElse[B>:A](ob: => Option[B]): Option[B] = {
     this map (Some(_)) getOrElse ob
+  }
 
   def filter_1(f: A => Boolean): Option[A] = this match {
     case Some(a) => if (f(a)) this else None
@@ -36,6 +37,18 @@ sealed trait Option[+A] {
   }
 
   def filter(f: A => Boolean): Option[A] = this flatMap(a => if(f(a)) this else None)
+
+  //ex4.3
+  def map2[A, B, C](a: Option[A], b: Option[B])(f: (A, B) => C): Option[C] =
+    if (a == None || b == None) None else (a,b) match {case (Some(aa), Some(bb)) => Try(f(aa, bb))}
+
+
+  def Try[A](a: => A): Option[A] =
+    try Some(a)
+    catch {
+      case e: Exception => None
+    }
+
 }
 
 case class Some[+A](get: A) extends Option[A]
@@ -43,7 +56,7 @@ case class Some[+A](get: A) extends Option[A]
 case object None extends Option[Nothing]
 
 //ex4.2
-object Ex1 {
+object Ex42 {
 
   def mean(xs: Seq[Double]): Option[Double] =
     if (xs.isEmpty) None
@@ -52,3 +65,13 @@ object Ex1 {
   def variance(xs: Seq[Double]): Option[Double] =
     mean(xs) flatMap (m => mean(xs.map(x => math.pow(x - m, 2))))
 }
+
+object Ex44 {
+  //ex4.4
+  def sequence[A](a: List[Option[A]]): Option[List[A]] = a.filter(_ == None) match {
+    case Nil => Some(a.map(_ match { case Some(x) => x }))
+    case _ => None
+  }
+
+}
+
