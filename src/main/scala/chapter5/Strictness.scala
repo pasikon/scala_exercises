@@ -1,5 +1,9 @@
 package chapter5
 
+import Stream1._
+
+import scala.annotation.tailrec
+
 sealed trait Stream1[+A] {
   def headOption: Option[A] = this match {
     case Empty1 => None
@@ -18,14 +22,24 @@ sealed trait Stream1[+A] {
   }
 
   //ex5.2
-  def take(n: Int): Stream1[A] = {
+  def take1(n: Int): Stream1[A] = {
+    @tailrec
     def accTake(n: Int, acc: Stream1[A], s: Stream1[A]): Stream1[A] = {
       if (n > 0 && s.headOption.nonEmpty) accTake(n - 1, Stream1.cons(s.headOption.get, acc), s.tailOption.get) else acc
     }
-    accTake(n, Empty1, this)
+    accTake(n, empty, this)
   }
 
-  def drop(n: Int): Stream1[A] = {
+  final def take(n: Int): Stream1[A] = {
+    this match {
+      case Cons1(h, t) if n > 1 => cons(h(), t().take(n - 1))
+      case Cons1(h, _) if n == 0 => cons(h(), empty)
+      case _ => empty
+    }
+  }
+
+  def drop1(n: Int): Stream1[A] = {
+    @tailrec
     def accTake(n: Int, acc: Stream1[A], s: Stream1[A]): Stream1[A] = {
       if (s.headOption.nonEmpty)
         if(n <= 0) {
@@ -38,12 +52,26 @@ sealed trait Stream1[+A] {
     accTake(n, Empty1, this)
   }
 
+  @tailrec
+  final def drop(n: Int): Stream1[A] = {
+    this match {
+      case Cons1(_, t) if n > 1 => t().drop(n - 1)
+      case _ => this
+    }
+  }
   //ex5.3
-  def takeWhile(p: A => Boolean): Stream1[A] = {
+  def takeWhile1(p: A => Boolean): Stream1[A] = {
     def accStream(acc: Stream1[A], s: Stream1[A]): Stream1[A] = {
       if (s.headOption.nonEmpty && p(s.headOption.get)) accStream(Stream1.cons(s.headOption.get, acc), s.tailOption.get) else acc
     }
     accStream(Empty1, this)
+  }
+
+  def takeWhile(p: A => Boolean): Stream1[A] = {
+    this match {
+      case Cons1(h, t) if p(h()) => cons(h(), t() takeWhile p)
+      case _ => this
+    }
   }
 
 }
