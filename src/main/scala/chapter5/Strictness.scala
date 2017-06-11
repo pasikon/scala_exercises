@@ -18,24 +18,24 @@ sealed trait Stream1[+A] {
   }
 
   //ex5.2
-  def take(n: Int): List[A] = {
-    def accTake(n: Int, acc: List[A], s: Stream1[A]): List[A] = {
-      if (n > 0 && s.headOption.nonEmpty) accTake(n - 1, s.headOption.get :: acc, s match { case Cons1(_, t) => t() }) else acc
+  def take(n: Int): Stream1[A] = {
+    def accTake(n: Int, acc: Stream1[A], s: Stream1[A]): Stream1[A] = {
+      if (n > 0 && s.headOption.nonEmpty) accTake(n - 1, Stream1.cons(s.headOption.get, acc), s.tailOption.get) else acc
     }
-    accTake(n, Nil, this)
+    accTake(n, Empty1, this)
   }
 
-  def drop(n: Int): List[A] = {
-    def accTake(n: Int, acc: List[A], s: Stream1[A]): List[A] = {
+  def drop(n: Int): Stream1[A] = {
+    def accTake(n: Int, acc: Stream1[A], s: Stream1[A]): Stream1[A] = {
       if (s.headOption.nonEmpty)
         if(n <= 0) {
-          accTake(n - 1, s.headOption.get :: acc, s match { case Cons1(_, t) => t() })
+          accTake(n - 1, Stream1.cons(s.headOption.get, acc), s.tailOption.get)
         } else {
-          accTake(n-1, Nil, s match { case Cons1(_, t) => t() })
+          accTake(n-1, Empty1, s.tailOption.get)
         }
       else acc
     }
-    accTake(n, Nil, this)
+    accTake(n, Empty1, this)
   }
 
   //ex5.3

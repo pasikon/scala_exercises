@@ -8,16 +8,18 @@ val c1 = a.take(50)
 
 
 val b = Stream1.apply("ablolasdsa", "lolsa", "lol", "adsf", "asad")
-b.take(3)
+b.toList
+b.take(3).toList
+b.take(1).toList
 
 b.takeWhile(_.contains("lol")).toList
 b.takeWhile(_.contains("a")).toList
-b.takeWhile(_.contains("a")).take(1)
+b.takeWhile(_.contains("a")).take(1).toList
 
-b.drop(1)
-b.drop(2)
-b.drop(3)
-b.drop(4)
-b.drop(5)
-b.drop(6)
+b.drop(1).toList
+b.drop(2).toList
+b.drop(3).toList
+b.drop(4).toList
+b.drop(5).toList
+b.drop(6).toList
 
