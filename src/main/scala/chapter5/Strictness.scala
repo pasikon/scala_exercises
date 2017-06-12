@@ -74,6 +74,28 @@ sealed trait Stream1[+A] {
     }
   }
 
+  def foldRight[B](z: => B)(f: (A, => B) => B): B =
+    this match {
+      case Cons1(h,t) => f(h(), t().foldRight(z)(f))
+      case _ => z
+    }
+
+  //ex5.4
+  //b to tail
+  def forAll(f: A => Boolean): Boolean = foldRight(true)((a, b) => f(a) && b)
+
+  //ex5.5
+  def takeWhileFR(f: A => Boolean): Stream1[A] = foldRight(empty[A])((a, b) => if (f(a)) cons(a, b) else Empty1)
+
+  //ex5.7
+  def map[B](f: (A) => B): Stream1[B] = foldRight(empty[B])((h, t) => cons(f(h), t))
+
+  def append[B >: A](s: => Stream1[B]): Stream1[B] = foldRight(s)((h, t) => cons(h, t))
+
+  def flatMap[B](f: (A) => Stream1[B]): Stream1[B] = foldRight(empty[B])((h, t ) => f(h) append t)
+
+  def filter(f: A => Boolean): Stream1[A] = foldRight(empty[A])((h,t) => if (f(h)) cons(h, t) else t)
+
 }
 
 case object Empty1 extends Stream1[Nothing]
