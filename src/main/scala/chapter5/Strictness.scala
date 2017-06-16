@@ -96,6 +96,80 @@ sealed trait Stream1[+A] {
 
   def filter(f: A => Boolean): Stream1[A] = foldRight(empty[A])((h,t) => if (f(h)) cons(h, t) else t)
 
+  //ex5.11
+  def unfold[A, S](z: S)(f: S => Option[(A, S)]): Stream1[A] = {
+    f(z).flatMap(fz => Some(cons(fz._1, unfold(fz._2)(f)))).getOrElse(Empty1)
+  }
+
+  //ex5.13
+  def mapUN[B](f: (A) => B): Stream1[B] = unfold(this) {
+    case Cons1(h, t) => Some(f(h()) -> t())
+    case _ => None
+  }
+
+  def takeUN(n: Int): Stream1[A] = unfold(this) {
+    case Cons1(h, t) if n > 0 => Some(h() -> t().takeUN(n - 1))
+    case _ => None
+  }
+
+}
+
+object StreamUtil extends App {
+
+  //ex5.8
+  def constant0[A](a: A): Stream1[A] = cons(a, constant(a))
+  def constant1[A](a: A): Stream1[A] = Cons1(() => a, () => constant(a))
+  def constant[A](a: A): Stream1[A] = {
+    lazy val tail: Stream1[A] = Cons1(() => a, () => tail)
+    tail
+  }
+
+  //ex5.9
+  def from(n: Int): Stream1[Int] = cons(n, from(n+1))
+
+  //ex5.10
+  def fibs(): Stream1[Int] = fibsAcc(0, 0)
+
+  private def fibsAcc(pv1: Int, pv2: Int): Stream1[Int] = {
+    (pv1, pv2) match {
+      case (0, 0) => cons(0, fibsAcc(1, 0))
+      case (a, b) => cons(a + b, fibsAcc(a + b, a))
+    }
+  }
+
+  //ex5.11
+  def unfold[A, S](z: S)(f: S => Option[(A, S)]): Stream1[A] = {
+    f(z).flatMap(fz => Some(cons(fz._1, unfold(fz._2)(f)))).getOrElse(Empty1)
+  }
+
+  //ex5.12
+  def constantUN[A](a: A): Stream1[A] = unfold(a)((z: A) => Some(z -> z))
+
+  def fibsUN(): Stream1[Int] = unfold(empty: Stream1[Int])((z: Stream1[Int]) => z match {
+    case Empty1 => Some(0 -> cons(1, Empty1))
+    case Cons1(h, t) =>
+      val value: Int = t() match {
+        case Cons1(hh, tt) => hh()
+        case _ => 0
+      }
+      Some(value + h(), cons(value + h(), z))
+  })
+
+  def fromUN(n: Int): Stream1[Int] = unfold(n)((z: Int) => Some(z -> (z + 1)))
+
+  def onesUN: Stream1[Int] = unfold(1)(_ => Some(1 -> 1))
+
+  override def main(args: Array[String]): Unit = {
+    println(fibs().take(40).toList)
+    println(fibsUN().take(40).toList)
+
+    println(constantUN(5).take(10).toList)
+    println(fromUN(5).take(15).toList)
+    println(onesUN.take(15).toList)
+
+    val b = Stream1.apply("ablolasdsa", "lolsa", "lol", "adsf", "asad")
+    println(b.mapUN(_ + "LOL").takeUN(2).toList)
+  }
 }
 
 case object Empty1 extends Stream1[Nothing]
