@@ -112,6 +112,18 @@ sealed trait Stream1[+A] {
     case _ => None
   }
 
+  def takeWhileUN(p: A => Boolean): Stream1[A] = unfold(this) {
+    case Cons1(h, t) if p(h()) => Some(h() -> t())
+    case _ => None
+  }
+
+  def zipWith[B,C](s2: Stream1[B])(f: (A,B) => C): Stream1[C] = unfold(this, s2) {
+    case (Cons1(h, t), Cons1(h2, t2)) => Some( f(h(), h2()) -> (t() -> t2()))
+    case _ => None
+  }
+
+  def zipAll[B](s2: Stream1[B]): Stream1[(Option[A],Option[B])] = ???
+
 }
 
 object StreamUtil extends App {
@@ -145,6 +157,8 @@ object StreamUtil extends App {
   //ex5.12
   def constantUN[A](a: A): Stream1[A] = unfold(a)((z: A) => Some(z -> z))
 
+  def fibsUnfold() : Stream1[Int] = unfold((0,1)) { case (f0,f1) => Some((f0,(f1,f0+f1))) }
+
   def fibsUN(): Stream1[Int] = unfold(empty: Stream1[Int])((z: Stream1[Int]) => z match {
     case Empty1 => Some(0 -> cons(1, Empty1))
     case Cons1(h, t) =>
@@ -169,6 +183,11 @@ object StreamUtil extends App {
 
     val b = Stream1.apply("ablolasdsa", "lolsa", "lol", "adsf", "asad")
     println(b.mapUN(_ + "LOL").takeUN(2).toList)
+    println(b.mapUN(_ + "LOL").takeUN(33).toList)
+
+    val intS = Stream1.apply(10, 20, 30, 40, 50)
+    val intS2 = Stream1.apply(1, 2, 3, 4, 5)
+    println(intS.zipWith(intS2)((i, i2) => (i + i2).toString + "asd").toList)
   }
 }
 
