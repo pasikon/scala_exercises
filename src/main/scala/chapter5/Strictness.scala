@@ -122,7 +122,18 @@ sealed trait Stream1[+A] {
     case _ => None
   }
 
-  def zipAll[B](s2: Stream1[B]): Stream1[(Option[A],Option[B])] = ???
+  def zipAll[B](s2: Stream1[B]): Stream1[(Option[A],Option[B])] = unfold(this, s2) {
+    case (Cons1(h, t), Cons1(h2, t2)) => Some( Some(h()) -> Some(h2()) -> (t() -> t2()))
+    case (Empty1, Cons1(h2, t2)) => Some( None -> Some(h2()) -> (Empty1 -> t2()))
+    case (Cons1(h, t), Empty1) => Some( Some(h()) -> None -> (t() -> Empty1))
+    case _ => None
+  }
+
+  //ex5.15
+  def tails: Stream1[Stream1[A]] = unfold(this) {
+    case s @ Cons1(_, t) => Some(s -> t())
+    case _ => None
+  } append Empty1
 
 }
 
@@ -185,9 +196,12 @@ object StreamUtil extends App {
     println(b.mapUN(_ + "LOL").takeUN(2).toList)
     println(b.mapUN(_ + "LOL").takeUN(33).toList)
 
-    val intS = Stream1.apply(10, 20, 30, 40, 50)
+    val intS = Stream1.apply(10, 20, 30, 40, 50, 60)
     val intS2 = Stream1.apply(1, 2, 3, 4, 5)
     println(intS.zipWith(intS2)((i, i2) => (i + i2).toString + "asd").toList)
+
+    println(intS.zipAll(b).toList)
+    println(b.tails.toList.map(_.toList))
   }
 }
 
