@@ -36,7 +36,15 @@ object RNG {
 
   def double(rng: RNG): (Double, RNG) = {
     val tuple = nonNegativeInt(rng)
-    Int.MaxValue.toDouble / tuple._1.toDouble + 1 -> tuple._2
+    tuple._1.toDouble / Int.MaxValue.toDouble + 1 -> tuple._2
+  }
+
+  def doubleM(rng: RNG): (Double, RNG) = {
+    map(_.nextInt)(_.toDouble / Int.MaxValue.toDouble + 1).apply(rng)
+  }
+
+  def doubleM1: Rand[Double] = {
+    map(_.nextInt)(_.toDouble / Int.MaxValue.toDouble + 1)
   }
 
   def intDouble(rng: RNG): ((Int,Double), RNG) = {
@@ -70,9 +78,25 @@ object RNG {
     intsAcc(count, Nil -> rng)
   }
 
-  def map2[A,B,C](ra: Rand[A], rb: Rand[B])(f: (A, B) => C): Rand[C] = ???
+  def map2[A,B,C](ra: Rand[A], rb: Rand[B])(f: (A, B) => C): Rand[C] = randc => {
+    val (gena, raa) = ra(randc)
+    val (genb, rbb) = rb(raa)
+    f(gena, genb) -> rbb
+  }
 
-  def sequence[A](fs: List[Rand[A]]): Rand[List[A]] = ???
+  def sequence[A](fs: List[Rand[A]]): Rand[List[A]] = rndr => {
+
+    def seqAcc(fsa: List[Rand[A]], fsacc: List[A], currState: RNG): (RNG ,List[A]) = {
+      fsa match {
+        case h :: t =>
+          val (v, r) = h(currState)
+          seqAcc(t, v :: fsacc, r)
+        case Nil => currState -> fsacc
+      }
+    }
+
+    seqAcc(fs, Nil, rndr).swap
+  }
 
   def flatMap[A,B](f: Rand[A])(g: A => Rand[B]): Rand[B] = ???
 }
@@ -95,4 +119,11 @@ case class Machine(locked: Boolean, candies: Int, coins: Int)
 object State {
   type Rand[A] = State[RNG, A]
   def simulateMachine(inputs: List[Input]): State[Machine, (Int, Int)] = ???
+}
+
+object tester extends App {
+  override def main(args: Array[String]): Unit = {
+    val lis = RNG.int :: RNG.int :: RNG.int :: RNG.int :: Nil
+    println(RNG.sequence(lis)(RNG.Simple.apply(58L)))
+  }
 }

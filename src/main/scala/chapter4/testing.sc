@@ -41,4 +41,6 @@ val ints = 1 :: 2 :: 3 :: 5 :: Nil
 
 TestEither.traverse(ints)((i: Int) => Right1(i + 5))
 
+
+
 //-----------
