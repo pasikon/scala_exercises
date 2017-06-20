@@ -123,7 +123,7 @@ object State {
 
 object tester extends App {
   override def main(args: Array[String]): Unit = {
-    val lis = RNG.int :: RNG.int :: RNG.int :: RNG.int :: Nil
+    val lis = List.fill(100)(RNG.int)
     println(RNG.sequence(lis)(RNG.Simple.apply(58L)))
   }
 }
