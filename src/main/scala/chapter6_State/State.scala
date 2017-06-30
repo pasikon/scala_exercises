@@ -98,7 +98,16 @@ object RNG {
     seqAcc(fs, Nil, rndr).swap
   }
 
-  def flatMap[A,B](f: Rand[A])(g: A => Rand[B]): Rand[B] = ???
+  //ex6.8
+  def flatMap[A,B](f: Rand[A])(g: A => Rand[B]): Rand[B] = rng => {
+    val (a, rng2) = f(rng)
+    g(a)(rng2)
+  }
+
+  def nonNegativeLessThan(n: Int): Rand[Int] = flatMap(int)(gint => { (rng: RNG) => {
+    if(gint > 0 && gint < n) (gint, rng)
+    else nonNegativeLessThan(n)(rng)
+  } })
 }
 
 case class State[S,+A](run: S => (A, S)) {
@@ -125,5 +134,9 @@ object tester extends App {
   override def main(args: Array[String]): Unit = {
     val lis = List.fill(100)(RNG.int)
     println(RNG.sequence(lis)(RNG.Simple.apply(58L)))
+
+    println(RNG.flatMap(RNG.int)(in => (r: RNG) => RNG.double3(r))(RNG.Simple.apply(90L)))
+
+    println(RNG.nonNegativeLessThan(56)(RNG.Simple.apply(90L)))
   }
 }
