@@ -29,6 +29,10 @@ object RNG {
       (f(a), rng2)
     }
 
+  def mapFl[A,B](s: Rand[A])(f: A => B): Rand[B] = flatMap(s){
+    (arg: A) => (rng: RNG) => f(arg) -> rng
+  }
+
   def nonNegativeInt(rng: RNG): (Int, RNG) = {
     val (i, r) = rng.nextInt
     (if (i < 0) -(i + 1) else i, r)
@@ -84,6 +88,13 @@ object RNG {
     f(gena, genb) -> rbb
   }
 
+  def map2Fl[A,B,C](ra: Rand[A], rb: Rand[B])(f: (A, B) => C): Rand[C] = flatMap(ra){
+    (arg: A) => (rng: RNG) => {
+      val (b, rng2) = rb(rng)
+      f(arg, b) -> rng2
+    }
+  }
+
   def sequence[A](fs: List[Rand[A]]): Rand[List[A]] = rndr => {
 
     def seqAcc(fsa: List[Rand[A]], fsacc: List[A], currState: RNG): (RNG ,List[A]) = {
@@ -104,30 +115,47 @@ object RNG {
     g(a)(rng2)
   }
 
-  def nonNegativeLessThan(n: Int): Rand[Int] = flatMap(int)(gint => { (rng: RNG) => {
-    if(gint > 0 && gint < n) (gint, rng)
+  def nonNegativeLessThanEx(n: Int): Rand[Int] = { rng =>
+    val (i, rng2) = nonNegativeInt(rng)
+    val mod = i % n
+    if (i + (n-1) - mod >= 0)
+      (mod, rng2)
+    else nonNegativeLessThanEx(n)(rng)
+  }
+
+  def nonNegativeLessThan(n: Int): Rand[Int] = flatMap(nonNegativeInt)(gint => { (rng: RNG) => {
+    val mod = gint % n
+    if (gint + (n-1) - mod >= 0) mod -> rng
     else nonNegativeLessThan(n)(rng)
   } })
 }
 
 case class State[S,+A](run: S => (A, S)) {
+
   def map[B](f: A => B): State[S, B] = State((st: S) => {
     val (v, st2) = run(st)
     (f(v), st2)
   })
 
-  def map2[B,C](sb: State[S, B])(f: (A, B) => C): State[S, C] = {
-    val value1: State[S, State[S, C]] = this.map(a => {
-      val value: State[S, C] = sb.map(b => f(a, b))
-      value
-    })
-    value1
-  }
+  def map2v1[B,C](sb: State[S, B])(f: (A, B) => C): State[S, C] = State((st: S) => {
+    val (v, stThis) = this.run(st)
+    val (v2, stB) = sb.run(stThis)
+    f(v, v2) -> stB
+  })
 
-  def flatMap[B](f: A => State[S, B]): State[S, B] = {
-    val a: State[S, State[S, B]] = this.map(f)
-    a()
-  }
+  def map2v2[B,C](sb: State[S, B])(f: (A, B) => C): State[S, C] = this.flatMap(a => sb.map(b => f(a, b)))
+
+  def map2[B,C](sb: State[S, B])(f: (A, B) => C): State[S, C] = for {
+    a <- this
+    b <- sb
+  } yield f(a, b)
+
+  def flatMap[B](f: A => State[S, B]): State[S, B] = State((st: S) => {
+    val (v, stThis) = run(st)
+    f(v).run(stThis)
+  })
+
+
 
 }
 
@@ -149,6 +177,7 @@ object tester extends App {
 
     println(RNG.flatMap(RNG.int)(in => (r: RNG) => RNG.double3(r))(RNG.Simple.apply(90L)))
 
-    println(RNG.nonNegativeLessThan(56)(RNG.Simple.apply(90L)))
+    println(RNG.nonNegativeLessThanEx(10)(RNG.Simple.apply(95L)))
+    println(RNG.nonNegativeLessThan(10)(RNG.Simple.apply(95L)))
   }
 }
