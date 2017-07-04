@@ -166,8 +166,21 @@ case object Turn extends Input
 case class Machine(locked: Boolean, candies: Int, coins: Int)
 
 object State {
+
   type Rand[A] = State[RNG, A]
-  def simulateMachine(inputs: List[Input]): State[Machine, (Int, Int)] = ???
+
+  def simulateMachine(inputs: List[Input]): State[Machine, (Int, Int)] = {
+
+    State( (m: Machine) => {
+      val machine = inputs.foldLeft(m)((b, inp) => inp match {
+        case coin @ Coin if b.locked && b.candies > 0 => Machine(false, b.candies, b.coins + 1)
+        case turn @ Turn if !b.locked && b.candies > 0 => Machine(true, b.candies - 1, b.coins)
+        case _ => b
+      })
+      (machine.candies -> machine.coins) -> machine
+    } )
+
+  }
 }
 
 object tester extends App {
@@ -179,5 +192,8 @@ object tester extends App {
 
     println(RNG.nonNegativeLessThanEx(10)(RNG.Simple.apply(95L)))
     println(RNG.nonNegativeLessThan(10)(RNG.Simple.apply(95L)))
+
+    val value: State[Machine, (Int, Int)] = State.simulateMachine(Coin :: Turn :: Coin :: Turn :: Nil)
+    println(value.run(Machine(true, 5, 10)))
   }
 }
