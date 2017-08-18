@@ -27,7 +27,7 @@ object Futures {
 
   //better version
   def sequence2[A](li: List[Future[A]])(implicit b: CanBuildFrom[List[Future[A]], A, List[A]]): Future[List[A]] = {
-    li.foldLeft(Future.successful(b(li)))((bF, fu) => bF.zipWith(fu)((bu, a) => bu.+=(a))).map(_.result())
+    li.foldLeft(Future.successful(b(li)))((bF, elF) => bF.zipWith(elF)((bu, a) => bu += a)).map(_.result())
   }
 
 }
