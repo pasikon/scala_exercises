@@ -1,4 +1,4 @@
-package chapter7
+package parallelism
 
 import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
 import java.util.concurrent.{Callable, ExecutorService}

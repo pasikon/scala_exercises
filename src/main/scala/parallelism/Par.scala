@@ -1,6 +1,9 @@
-package chapter7
+package parallelism
 
 import java.util.concurrent._
+
+import parallelism.Par.Par
+
 import language.implicitConversions
 
 object Par {
@@ -37,6 +40,9 @@ object Par {
   def map[A,B](pa: Par[A])(f: A => B): Par[B] =
     map2(pa, unit(()))((a,_) => f(a))
 
+  //ex7.9
+  def sequence[A](ps: List[Par[A]]): Par[List[A]] = ps.foldLeft(unit[List[A]](Nil))((li, el) => map2(li, el)((lii, ell) => ell :: lii))
+
   def sortPar(parList: Par[List[Int]]) = map(parList)(_.sorted)
 
   def equal[A](e: ExecutorService)(p: Par[A], p2: Par[A]): Boolean =
@@ -69,4 +75,11 @@ object Examples {
       sum(l) + sum(r) // Recursively sum both halves and add the results together.
     }
 
+}
+
+object Testing extends App {
+  private val list: List[Par[Int]] = Par.unit(1) :: Par.unit(2) :: Par.unit(3) :: Nil
+  private val pL: Par[List[Int]] = Par.sequence(list)
+  private val fut: Future[List[Int]] = Par.run(new ForkJoinPool())(pL)
+  println(fut.get())
 }
