@@ -31,7 +31,7 @@ object Par {
 
   def fork[A](a: => Par[A]): Par[A] = // This is the simplest and most natural implementation of `fork`, but there are some problems with it--for one, the outer `Callable` will block waiting for the "inner" task to complete. Since this blocking occupies a thread in our thread pool, or whatever resource backs the `ExecutorService`, this implies that we're losing out on some potential parallelism. Essentially, we're using two threads when one should suffice. This is a symptom of a more serious problem with the implementation, and we will discuss this later in the chapter.
     es => es.submit(new Callable[A] {
-      def call = a(es).get
+      def call: A = a(es).get
     })
 
   //ex7.4
@@ -40,8 +40,19 @@ object Par {
   def map[A,B](pa: Par[A])(f: A => B): Par[B] =
     map2(pa, unit(()))((a,_) => f(a))
 
-  //ex7.9
-  def sequence[A](ps: List[Par[A]]): Par[List[A]] = ps.foldLeft(unit[List[A]](Nil))((li, el) => map2(li, el)((lii, ell) => ell :: lii))
+  //ex7.5
+  def sequence[A](ps: List[Par[A]]): Par[List[A]] = ps.foldLeft(unit[List[A]](Nil))((li, el) => fork(map2(el, li)(_ :: _)))
+
+  //ex7.6-------------------------
+  def parFilter1[A](as: List[A])(f: A => Boolean): Par[List[A]] =
+    as.foldLeft(lazyUnit(List.empty[A]))((b, el) => fork(map(b)(bb => if(f(el)) el :: bb else bb)))
+
+  //much better
+  def parFilter[A](as: List[A])(f: A => Boolean): Par[List[A]] = {
+    val pars: List[Par[List[A]]] = as map asyncF((a: A) => if (f(a)) List(a) else List())
+    map(sequence(pars))(_.flatten)
+  }
+  //--------------------------------------------------
 
   def sortPar(parList: Par[List[Int]]) = map(parList)(_.sorted)
 
@@ -78,8 +89,12 @@ object Examples {
 }
 
 object Testing extends App {
-  private val list: List[Par[Int]] = Par.unit(1) :: Par.unit(2) :: Par.unit(3) :: Nil
+  private val list: List[Par[Int]] = Par.unit(1) :: Par.unit(2) :: Par.unit(3) :: Par.unit(10) :: Nil
+  private val ints = List(1,2,3,10)
   private val pL: Par[List[Int]] = Par.sequence(list)
   private val fut: Future[List[Int]] = Par.run(new ForkJoinPool())(pL)
   println(fut.get())
+  private val parLI: Par[List[Int]] = Par.parFilter1(ints)(i => i < 10)
+  private val fut1: Future[List[Int]] = Par.run(new ForkJoinPool())(parLI)
+  println("Parfil: " + fut1.get())
 }
