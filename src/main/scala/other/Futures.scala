@@ -30,12 +30,27 @@ object Futures {
     li.foldLeft(Future.successful(b(li)))((bF, elF) => bF.zipWith(elF)((bu, a) => bu += a)).map(_.result())
   }
 
+  def sequence3[A](li: List[Future[A]])(implicit b: CanBuildFrom[List[Future[A]], A, List[A]]): Future[List[A]] = {
+    li.foldLeft(Future.successful(b(li)))((bu, f) => bu.flatMap(b => f.map(a => b += a))).map(_.result())
+  }
+
+  def sequence4[A](li: List[Future[A]])(implicit b: CanBuildFrom[List[Future[A]], A, List[A]]): Future[List[A]] = {
+    li.foldLeft(Future.successful(b(li)))((bu, f) => {
+      for {
+        a <- f
+        b <- bu
+      } yield b += a
+    }).map(_.result())
+  }
+
 }
 
 object Testing extends App {
 
   val stF = Future.successful("a") :: Future.successful("b") :: Future.successful("c") :: Nil
 
-  println(Await.result(Futures.sequence2(stF), Duration.Inf))
+  println(s"SEQUENCE 2: ${Await.result(Futures.sequence2(stF), Duration.Inf)}")
+  println(s"SEQUENCE 3: ${Await.result(Futures.sequence3(stF), Duration.Inf)}")
+  println(s"SEQUENCE 4: ${Await.result(Futures.sequence3(stF), Duration.Inf)}")
 
 }
