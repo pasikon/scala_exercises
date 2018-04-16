@@ -25,15 +25,30 @@ object Monoid {
     override def op(a1: Int, a2: Int): Int = a1 + a2
   }
 
-  val intMultiplication: Monoid[Int] = ???
+  val intMultiplication: Monoid[Int] = new Monoid[Int] {
+    override def zero: Int = 0
+    override def op(a1: Int, a2: Int): Int = a1 * a2
+  }
 
-  val booleanOr: Monoid[Boolean] = ???
+  val booleanOr: Monoid[Boolean] = new Monoid[Boolean] {
+    override def zero: Boolean = false
+    override def op(a1: Boolean, a2: Boolean): Boolean = a1 ||  a2
+  }
 
-  val booleanAnd: Monoid[Boolean] = ???
+  val booleanAnd: Monoid[Boolean] = new Monoid[Boolean] {
+    val zero: Boolean = false
+    override def op(a1: Boolean, a2: Boolean): Boolean = a1 && a2
+  }
 
-  def optionMonoid[A]: Monoid[Option[A]] = ???
+  def optionMonoid[A]: Monoid[Option[A]] = new Monoid[Option[A]] {
+    val zero: Option[A] = None
+    def op(a1: Option[A], a2: Option[A]): Option[A] = a1 orElse a2
+  }
 
-  def endoMonoid[A]: Monoid[A => A] = ???
+  def endoMonoid[A]: Monoid[A => A] = new Monoid[A => A] {
+    val zero: A => A = (a: A) => a
+    def op(a1: A => A, a2: A => A): A => A = a1 compose a2
+  }
 
   // TODO: Placeholder for `Prop`. Remove once you have implemented the `Prop`
   // data type from Part 2.
@@ -51,20 +66,28 @@ object Monoid {
   def concatenate[A](as: List[A], m: Monoid[A]): A =
     ???
 
-  def foldMap[A, B](as: List[A], m: Monoid[B])(f: A => B): B =
-    ???
+  def foldMap[A, B](as: List[A], m: Monoid[B])(f: A => B): B = as.foldLeft(m.zero)((acc, el) => m.op(acc, f(el)))
 
-  def foldRight[A, B](as: List[A])(z: B)(f: (A, B) => B): B =
-    ???
+  def foldRight[A, B](as: List[A])(z: B)(f: (A, B) => B): B = {
+    val bToB: B => B = foldMap(as, endoMonoid[B])(f.curried)
+    bToB(z)
+  }
 
   def foldLeft[A, B](as: List[A])(z: B)(f: (B, A) => B): B =
     ???
 
-  def foldMapV[A, B](as: IndexedSeq[A], m: Monoid[B])(f: A => B): B =
-    ???
+  def foldMapV[A, B](as: IndexedSeq[A], m: Monoid[B])(f: A => B): B = {
+    if (as.isEmpty) {
+      m.zero
+    } else if (as.length == 1) {
+      f(as(0))
+    } else {
+      val (l, r) = as.splitAt(as.length/2)
+      m.op(foldMapV(l, m)(f), foldMapV(r, m)(f))
+    }
+  }
 
-  def ordered(ints: IndexedSeq[Int]): Boolean =
-    ???
+  def ordered(ints: IndexedSeq[Int]): Boolean = ???
 
   sealed trait WC
   case class Stub(chars: String) extends WC

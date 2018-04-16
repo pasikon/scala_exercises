@@ -34,6 +34,12 @@ object Par {
       def call = a(es).get
     })
 
+  def flatMap[A,B](p: Par[A])(choices: A => Par[B]): Par[B] =
+    es => {
+      val k = run(es)(p).get
+      run(es)(choices(k))
+    }
+
   //ex7.4
   def asyncF[A,B](f: A => B): A => Par[B] = (a: A) => lazyUnit(f(a))
 
